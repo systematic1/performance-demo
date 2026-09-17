@@ -3,22 +3,15 @@ using ZeroAllocSPSCDemo.Models;
 
 namespace ZeroAllocSPSCDemo.Managers;
 
-public class OrderCollector : IDisposable
+public class OrderQueue : IDisposable
 {
-    private static readonly int Capacity = 256 * 1024;
+    private static readonly int Capacity = 16 * 1024;
     
-    static OrderCollector()
-    {
-        // Pre-allocate rentable memory array buffer for lock-free ring array
-        var tempArray = ArrayPool<ProductOrder>.Shared.Rent(Capacity);
-        ArrayPool<ProductOrder>.Shared.Return(tempArray);
-    }
-
-    private ProductOrder[] _orders;
+    private readonly ProductOrder[] _orders;
     private int _head;
     private int _tail;
     
-    public OrderCollector()
+    public OrderQueue()
     {
         _orders = ArrayPool<ProductOrder>.Shared.Rent(Capacity);
         _head = 0; // dequeue from
