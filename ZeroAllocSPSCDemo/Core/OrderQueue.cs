@@ -8,8 +8,8 @@ public class OrderQueue : IDisposable
     private static readonly int Capacity = 16 * 1024;
     
     private readonly ProductOrder[] _orders;
-    private int _head;
-    private int _tail;
+    private long _head;
+    private long _tail;
     
     public OrderQueue()
     {
@@ -20,45 +20,42 @@ public class OrderQueue : IDisposable
 
     public bool IsEmpty()
     {
-        return _head == _tail;
+        return _head % Capacity == _tail % Capacity;
     }
 
     public bool IsFull()
     {
-        return (_tail + 1) % Capacity == _head;
+        return (_tail - _head) >= Capacity;
     }
 
-    public int Count()
+    public long Count()
     {
-        return (
-            _head < _tail ? 
-            _tail - _head : 
-            Capacity - _head - _tail
-        );
+        return (_tail - _head) % Capacity;
     }
 
-    public bool Enqueue(ProductOrder order)
+    public bool Enqueue(ref ProductOrder order)
     {
         if (!IsFull())
         {
-            _orders[_tail] = order;
-            _tail = (_tail + 1) % Capacity;
+            _orders[_tail % Capacity] = order;
+            _tail++;
             return true;
         }
 
         return false;
     }
 
-    public ProductOrder? Dequeue()
+    public bool Dequeue(ref ProductOrder? order)
     {
         if (!IsEmpty())
         {
-            var order = _orders[_head];
+            order = _orders[_head % Capacity];
             _head++;
-            return order;
+            return true;
         }
 
-        return null;
+        order = default(ProductOrder);
+        return false;
     }
     
     public void Dispose()

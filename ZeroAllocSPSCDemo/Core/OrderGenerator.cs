@@ -7,21 +7,22 @@ public class OrderGenerator : IDisposable
 {
     private readonly OrderQueue _orderQueue;
     private readonly ProductOrder[] _availableItems;
-    private readonly int _maxItemsToGenerate = 400 * 1024;
+    private readonly int _maxItemsToGenerate;
     private int _index;
     
-    public OrderGenerator()
+    public OrderGenerator(ref OrderQueue orderQueue, int maxItems)
     {
-        _orderQueue = new OrderQueue();
+        _maxItemsToGenerate = maxItems;
+        _orderQueue = orderQueue;
         _availableItems = ArrayPool<ProductOrder>.Shared.Rent(_maxItemsToGenerate);
         _index = 0;
     }
 
-    public int ActiveOrderCount() => _orderQueue.Count();
+    public long ActiveOrderCount() => _orderQueue.Count();
 
     public bool ProduceNewOrder()
     {
-        if (_index < _availableItems.Length)
+        if (_index < _maxItemsToGenerate)
         {
             int orderId = Random.Shared.Next();
             int productId = Random.Shared.Next();
@@ -33,8 +34,7 @@ public class OrderGenerator : IDisposable
 
             _index++;
             
-            _orderQueue.Enqueue(next);
-            return true;
+            return _orderQueue.Enqueue(ref next);
         }
 
         return false;
@@ -42,7 +42,6 @@ public class OrderGenerator : IDisposable
 
     public void Dispose()
     {
-        _orderQueue?.Dispose();
         if (_availableItems?.Length > 0)
             ArrayPool<ProductOrder>.Shared.Return(_availableItems);
     }
