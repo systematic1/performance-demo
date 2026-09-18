@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using BenchmarkDotNet.Running;
 using ZeroAllocSPSCDemo.Managers;
 using ZeroAllocSPSCDemo.Models;
 
@@ -7,9 +8,9 @@ namespace ZeroAllocSPSCDemo;
 public static class Program
 {
     private static readonly int Capacity = 512 * 1024;
-    private static readonly int MaxGenerations = 256 * 1024;
-    private static readonly int MaxSleepMs = 4;
-    private static readonly int GenerateHeadstartMs = 2000;
+    private static readonly int MaxGenerations = 128 * 1024;
+    private static readonly int MaxSleepMs = 3;
+    private static readonly int GenerateHeadstartMs = 3500;
 
     private static OrderQueue _orderQueue;
     private static OrderGenerator _generator;
@@ -21,8 +22,14 @@ public static class Program
     private static int generatedCount = 0;
     private static int consumedCount = 0;
     private static long queueCount = 0;
-    
+
     static void Main(string[] args)
+    {
+        Run();
+        //BenchmarkRunner.Run<Benchmarks.SPSCBenchmark>();
+    }
+    
+    public static void Run()
     {
         Console.WriteLine("Starting Generator/Consumer App");
         Console.WriteLine("Queue Capacity is 16K items");
@@ -46,6 +53,8 @@ public static class Program
         _generatorThread = new Thread(new ThreadStart(GenerateNewOrders));
         _consumerThread = new Thread(new ThreadStart(ConsumeGeneratedOrders));
         
+        // Note: There is no new heap memory allocations past this point
+        
         _generatorThread.Start(); 
         
         Thread.Sleep(GenerateHeadstartMs);
@@ -54,6 +63,7 @@ public static class Program
 
         while (_generatorThread.IsAlive && _consumerThread.IsAlive)
         {
+            // Display a status message after so many items are generated (zero-allocation)
             if (generatedCount >= nextGeneratedCount)
             {
                 generatedCount.TryFormat(messageBuffer.AsSpan(), out byteCount);
@@ -66,6 +76,7 @@ public static class Program
                 Console.WriteLine(messageBuffer.AsSpan().Slice(0, byteCount));
             }
             
+            // Display a status message after so many items are consumed (zero-allocation)
             if (consumedCount >= nextConsumedCount)
             {
                 consumedCount.TryFormat(messageBuffer.AsSpan(), out byteCount);
@@ -77,9 +88,11 @@ public static class Program
         
         Console.WriteLine();
         Console.WriteLine("Application has finished processing.");
+        
+        // The application will not actually end until all of the remaining items are consumed
     }
 
-    static void RandomPause()
+    static void DoRandomPause()
     {
         int waitTime = Random.Shared.Next(0, MaxSleepMs);
         if (waitTime > 0)
@@ -93,7 +106,7 @@ public static class Program
         {
             succeeded = _generator.ProduceNewOrder();
             queueCount = _generator.ActiveOrderCount();
-            RandomPause();
+            DoRandomPause();
             generatedCount++;
         }
         while (succeeded);
@@ -105,8 +118,7 @@ public static class Program
         do
         {
             succeeded = _consumer.ConsumeNextOrder();
-            RandomPause();
-            // Not really doing anything with it
+            DoRandomPause();
             consumedCount++;
         }
         while (succeeded);
@@ -114,6 +126,8 @@ public static class Program
 
     private static void PreAllocateOrderQueueArray()
     {
+        // This allocates a fixed size array up front to rent to both the OrderQueue and the generator.
+        // The generator and consumer classes will rent from this ArrayPool and must return them.
         var tempArray = ArrayPool<ProductOrder>.Shared.Rent(Capacity);
         ArrayPool<ProductOrder>.Shared.Return(tempArray);
     }

@@ -12,6 +12,7 @@ public class OrderGenerator : IDisposable
     
     public OrderGenerator(ref OrderQueue orderQueue, int maxItems)
     {
+        // Can produce a maximum number of items
         _maxItemsToGenerate = maxItems;
         _orderQueue = orderQueue;
         _availableItems = ArrayPool<ProductOrder>.Shared.Rent(_maxItemsToGenerate);
@@ -20,6 +21,7 @@ public class OrderGenerator : IDisposable
 
     public long ActiveOrderCount() => _orderQueue.Count();
 
+    // Call this to generate a new ProductOrder and put it in the OrderQueue
     public bool ProduceNewOrder()
     {
         if (_index < _maxItemsToGenerate)

@@ -2,6 +2,9 @@ using System.Runtime.InteropServices;
 
 namespace ZeroAllocSPSCDemo.Models;
 
+// This is the main data being produced and consumed
+// It is struct type that is block sized to 64 bytes
+//  to prevent false sharing in the CPU cache
 [StructLayout(LayoutKind.Sequential, Size = 16)]
 public struct ProductOrder
 {

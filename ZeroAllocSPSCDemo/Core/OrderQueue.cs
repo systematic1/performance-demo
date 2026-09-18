@@ -3,6 +3,8 @@ using ZeroAllocSPSCDemo.Models;
 
 namespace ZeroAllocSPSCDemo.Managers;
 
+// This is a basic implementation of a lock-free ring queue based on a fixed
+//  rented ArrayPool. It can store up to 16,384 items at any one time.
 public class OrderQueue : IDisposable
 {
     private static readonly int Capacity = 16 * 1024;
