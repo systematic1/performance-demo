@@ -1,9 +1,15 @@
 ﻿using System.Buffers;
 using BenchmarkDotNet.Running;
-using ZeroAllocSPSCDemo.Managers;
-using ZeroAllocSPSCDemo.Models;
+using PerformanceDemo.Core;
+using PerformanceDemo.Models;
 
-namespace ZeroAllocSPSCDemo;
+namespace PerformanceDemo;
+// Multithreaded simultaneous operations/calculations
+// Parse and transform generated (incoming) data and send to multiple
+//  processing engines (threads) to perform different operations on each
+// Both operations will update a shared "scoreboard" data array 
+// Minimize/eliminate memory allocation
+// Use Parallel.For/Each() to perform parallel CPU tasking
 
 public static class Program
 {
@@ -13,14 +19,14 @@ public static class Program
     private static int MaxGenerations = 128 * 1024;
     private static int MaxSleepMs = 3;
     private static readonly int MaxGenerateHeadstartMs = 5000;
-    private static char[] _messageBuffer = new char[16];
+    private static char[] _messageBuffer = new char[20];
 
     private static long _startTimestamp = 0;
 
     private static OrderQueue _orderQueue;
     private static OrderGenerator _generator;
     private static OrderConsumer _consumer;
-    
+   
     private static Thread _generatorThread;
     private static Thread _consumerThread;
 
@@ -32,7 +38,7 @@ public static class Program
     {
         if (IsBenchmark)
         {
-            BenchmarkRunner.Run<Benchmarks.SPSCBenchmark>();
+            BenchmarkRunner.Run<Benchmarks.PerformanceBenchmark>();
         }
         else
         { 
@@ -54,7 +60,7 @@ public static class Program
     
     public static void Run()
     {
-        Console.WriteLine("Starting Generator/Consumer App");
+        Console.WriteLine("Starting Generator/Consumer/Scorer App");
         Console.WriteLine("Queue Capacity is 16K items");
         Console.WriteLine();
         
@@ -85,10 +91,12 @@ public static class Program
             // Display a status message after so many items are generated (zero-allocation)
             if (generatedCount >= nextGeneratedCount && !IsBenchmark)
             {
+                _messageBuffer.AsSpan().Clear();
                 queueCount.TryFormat(_messageBuffer.AsSpan(), out byteCount);
                 Console.Write("------------------- Active Queue Count: ");
                 Console.WriteLine(_messageBuffer.AsSpan().Slice(0, byteCount));
 
+                _messageBuffer.AsSpan().Clear();
                 generatedCount.TryFormat(_messageBuffer.AsSpan(), out byteCount);
                 Console.Write(">> Produced: ");
                 Console.WriteLine(_messageBuffer.AsSpan().Slice(0, byteCount));
@@ -98,6 +106,7 @@ public static class Program
             // Display a status message after so many items are consumed (zero-allocation)
             if (consumedCount >= nextConsumedCount && !IsBenchmark)
             {
+                _messageBuffer.AsSpan().Clear();
                 consumedCount.TryFormat(_messageBuffer.AsSpan(), out byteCount);
                 Console.Write("<< Consumed: ");
                 Console.WriteLine(_messageBuffer.AsSpan().Slice(0, byteCount));
@@ -109,9 +118,7 @@ public static class Program
         TimeSpan timeSpan = TimeSpan.FromTicks(runtimeTicks);
         double opsPerSec = MaxGenerations / timeSpan.TotalSeconds;
         
-        Console.WriteLine();
-        Console.WriteLine("Application has finished processing.");
-        
+        _messageBuffer.AsSpan().Clear();
         opsPerSec = Math.Round(opsPerSec, 4);
         opsPerSec.TryFormat(_messageBuffer.AsSpan(), out byteCount);
         Console.Write("Average of ");
@@ -121,6 +128,25 @@ public static class Program
         // The application will not actually end until all the remaining items are consumed
         while (_generatorThread.IsAlive || _consumerThread.IsAlive) 
         {}
+        
+        Console.WriteLine();
+        Console.WriteLine("=========================================================================");
+
+        var (totalQty, totalCost) = _consumer.GetTotals();
+
+        _messageBuffer.AsSpan().Clear();
+        totalQty.TryFormat(_messageBuffer.AsSpan(), out byteCount);
+        Console.WriteLine("SUMMARY TOTALS");
+        Console.Write("    TOTAL QTY:   ");
+        Console.WriteLine(_messageBuffer.AsSpan());
+        
+        _messageBuffer.AsSpan().Clear();
+        totalCost.TryFormat(_messageBuffer.AsSpan(), out byteCount);
+        Console.Write("    TOTAL COST:  ");
+        Console.WriteLine(_messageBuffer.AsSpan());
+        
+        Console.WriteLine();
+        Console.WriteLine("*******  Application has finished processing  *******");
     }
 
     static void DoRandomPause()

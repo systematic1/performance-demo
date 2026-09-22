@@ -1,9 +1,9 @@
 using BenchmarkDotNet.Attributes;
 
-namespace ZeroAllocSPSCDemo.Benchmarks;
+namespace PerformanceDemo.Benchmarks;
 
 [MemoryDiagnoser]
-public class SPSCBenchmark
+public class PerformanceBenchmark
 {
     [GlobalSetup]
     public void Setup()

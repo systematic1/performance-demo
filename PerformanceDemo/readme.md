@@ -12,3 +12,5 @@ before the consumer can remove them.
 * Lock free ring queue for speed with fixed initial preallocated ArrayPool buffer to avoid GC running
 * Concurrent access by two separate threads
 * Basic low latency demonstration with .NET Core 10 and C#
+
+#### This is not intended to be a fully optimized and fail-safe version, but for demonstration of conceptual understanding.

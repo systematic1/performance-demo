@@ -1,7 +1,7 @@
 using System.Buffers;
-using ZeroAllocSPSCDemo.Models;
+using PerformanceDemo.Models;
 
-namespace ZeroAllocSPSCDemo.Managers;
+namespace PerformanceDemo.Core;
 
 public class OrderGenerator : IDisposable
 {
@@ -28,11 +28,17 @@ public class OrderGenerator : IDisposable
         {
             int orderId = Random.Shared.Next();
             int productId = Random.Shared.Next();
-            int quantity = Random.Shared.Next(1, 25);
-            float unitPrice = Random.Shared.NextSingle() * 100f;
+            int quantity = Random.Shared.Next(1, 8);
+            float unitPrice = Random.Shared.Next(100, 10000) / 100f;
+            int discountPercentage = 5 * Random.Shared.Next(0, 3);
+            float taxRate = Random.Shared.Next(0, 20) > 12 ? 7.0f : 8.5f;
+            float shippingCost = Random.Shared.Next(0, 20) > 12 ? 9.99f : 0f;
+            int alternateProductId = Random.Shared.Next();
+            int shipPriority = Random.Shared.Next(0, 20) > 14 ? 1 : 2;
             
             ProductOrder next = _availableItems[_index];
-            next.Init(orderId, productId, quantity, unitPrice);
+            next.Init(orderId, productId, quantity, unitPrice, discountPercentage, taxRate, 
+                shippingCost, alternateProductId, shipPriority);
 
             _index++;
             
