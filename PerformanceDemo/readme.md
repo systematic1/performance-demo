@@ -9,8 +9,17 @@ The implementation has a very large pre-allocated buffer array (queue) allowing 
 and the consumer running simultaneously. The large memory allocation is to avoid locking if the producer pushes too many in the queue
 before the consumer can remove them.
 
-* Lock free ring queue for speed with fixed initial preallocated ArrayPool buffer to avoid GC running
+### Concurrent Parallel Computations
+
+As each produced order item is consumed, a global (shared) running total of the cost (quantity * price) and total quantity is 
+updated without variable locking or memory allocation.
+
+### Key Concepts
+
+* Lock free ring queue for speed with fixed initial preallocated *ArrayPool* buffer to avoid GC running
 * Concurrent access by two separate threads
+* Safely updating shared data by multiple threads with *Interlocked* and *Volatile*
 * Basic low latency demonstration with .NET Core 10 and C#
+* Includes a BenchmarkDotNet optional implementation
 
 #### This is not intended to be a fully optimized and fail-safe version, but for demonstration of conceptual understanding.
